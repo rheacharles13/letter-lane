@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elm Street — Your Digital Neighborhood</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+<!-- =========================================================
+  STEP 1: Paste your two values from Supabase → Settings → API
+========================================================= -->
+<script>
+  const SUPABASE_URL = 'https://kcqpccpmzxffwovynald.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_INfCzRXXDErqVAHD6w7eVg_NZ0lPBEV';
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --cream: #F5EFE0; --cream-dark: #E5DBCA;
+  --terracotta: #C0573A; --terra-light: #E07E5F;
+  --sage: #6A8E6E; --sage-light: #9EC4A2;
+  --golden: #C88A22; --golden-light: #E8AA44;
+  --brown: #2A2010; --brown-mid: #5C4A2A; --brown-light: #9A8060;
+  --card: #FFFDF6; --grass: #6A9E5A;
+}
+body { background: var(--cream); font-family: 'Lato', sans-serif; color: var(--brown); min-height: 100vh; }
+
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--cream); }
+.login-box { background: var(--card); border: 2px solid var(--cream-dark); border-radius: 1.25rem; padding: 2.5rem 2rem; max-width: 420px; width: 90%; text-align: center; }
+.login-box h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 0.4rem; }
+.login-box p { font-size: 0.9rem; color: var(--brown-mid); margin-bottom: 1.75rem; line-height: 1.6; }
+.login-input { width: 100%; padding: 0.8rem 1rem; border: 2px solid var(--cream-dark); border-radius: 0.65rem; font-family: 'Lato', sans-serif; font-size: 0.95rem; color: var(--brown); background: var(--cream); outline: none; margin-bottom: 0.75rem; transition: border-color 0.18s; }
+.login-input:focus { border-color: var(--terra-light); background: white; }
+.login-btn { width: 100%; padding: 0.85rem; background: var(--terracotta); color: white; border: none; border-radius: 0.65rem; font-family: 'Lato', sans-serif; font-size: 0.97rem; font-weight: 700; cursor: pointer; transition: all 0.18s; }
+.login-btn:hover { background: var(--terra-light); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-note { font-size: 0.8rem; color: var(--brown-light); margin-top: 1rem; }
+.check-email { display: none; background: #EFF7EF; border: 2px solid var(--sage-light); border-radius: 0.65rem; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; color: var(--sage); }
+
+#profile-screen { min-height: 100vh; display: none; align-items: center; justify-content: center; background: var(--cream); }
+.profile-box { background: var(--card); border: 2px solid var(--cream-dark); border-radius: 1.25rem; padding: 2.5rem 2rem; max-width: 420px; width: 90%; }
+.profile-box h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 0.4rem; }
+.profile-box p { font-size: 0.88rem; color: var(--brown-mid); margin-bottom: 1.5rem; line-height: 1.5; }
+.color-picker { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s; }
+.color-swatch.selected { border-color: var(--brown); transform: scale(1.15); }
+
+#app { display: none; }
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 2rem; background: var(--card); border-bottom: 2px solid var(--cream-dark); position: sticky; top: 0; z-index: 100; }
+.nav-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; }
+.nav-sub { font-size: 0.72rem; color: var(--brown-light); letter-spacing: 0.09em; text-transform: uppercase; }
+.nav-tabs { display: flex; gap: 0.4rem; }
+.nav-tab { padding: 0.45rem 1.1rem; border-radius: 99px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.18s; border: 1.5px solid transparent; user-select: none; }
+.nav-tab.active { background: var(--terracotta); color: white; }
+.nav-tab:not(.active) { color: var(--brown-mid); border-color: var(--cream-dark); }
+.nav-tab:not(.active):hover { border-color: var(--terra-light); color: var(--terracotta); }
+.sign-out-btn { font-size: 0.78rem; color: var(--brown-light); background: none; border: none; cursor: pointer; padding: 0.3rem 0.6rem; border-radius: 0.4rem; transition: all 0.15s; }
+.sign-out-btn:hover { background: var(--cream-dark); color: var(--brown); }
+
+.banner { background: var(--golden); color: white; padding: 0.65rem 2rem; display: flex; align-items: center; gap: 1rem; }
+.banner-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; }
+.banner-prompt { font-family: 'Playfair Display', serif; font-style: italic; font-size: 0.95rem; }
+.banner-cta { margin-left: auto; background: white; color: var(--golden); padding: 0.35rem 0.9rem; border-radius: 99px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: transform 0.15s; flex-shrink: 0; }
+.banner-cta:hover { transform: scale(1.04); }
+
+.view { display: none; }
+.view.active { display: block; }
+
+.nbhd-wrap { padding: 1.5rem 2rem; max-width: 1100px; margin: 0 auto; }
+.map-card { border-radius: 1.25rem; border: 3px solid var(--cream-dark); overflow: hidden; position: relative; min-height: 480px; background: linear-gradient(180deg, #BFE0F0 0%, #A8D4E8 28%, #88BC78 28%, #78A868 65%, #6A9E5A 100%); }
+.map-sky { position: absolute; inset: 0; pointer-events: none; }
+.map-street { position: absolute; bottom: 100px; left: 0; right: 0; height: 56px; background: #C8BA9A; border-top: 3px solid #B8AA8A; border-bottom: 3px solid #B8AA8A; }
+.map-street::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 3px; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.75) 0 28px, transparent 28px 56px); transform: translateY(-50%); }
+.map-sidewalk { position: absolute; bottom: 96px; left: 0; right: 0; height: 20px; background: #D8CEB4; border-top: 2px solid #C8BE9A; }
+.map-grass-front { position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: var(--grass); }
+.houses-row { position: absolute; bottom: 156px; left: 3rem; right: 3rem; display: flex; justify-content: space-around; align-items: flex-end; }
+.house-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.22s; }
+.house-wrap:hover { transform: translateY(-8px); }
+.house-label { font-family: 'Playfair Display', serif; font-size: 0.82rem; font-weight: 700; color: var(--brown); background: rgba(255,252,240,0.88); padding: 0.12rem 0.55rem; border-radius: 99px; margin-bottom: 0.35rem; white-space: nowrap; }
+.stats-row { display: flex; gap: 1rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 180px; background: var(--card); border: 2px solid var(--cream-dark); border-radius: 0.85rem; padding: 0.9rem 1.2rem; }
+.stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--brown-light); margin-bottom: 0.4rem; }
+.stat-value { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 700; line-height: 1; }
+.stat-sub { font-size: 0.82rem; color: var(--brown-mid); margin-top: 3px; }
+
+.feed-wrap { max-width: 760px; margin: 0 auto; padding: 1.75rem 2rem; }
+.feed-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.5rem; }
+.feed-head h2 { font-family: 'Playfair Display', serif; font-size: 1.65rem; }
+.feed-head span { font-size: 0.82rem; color: var(--brown-mid); }
+.post { background: var(--card); border-radius: 1rem; border: 2px solid var(--cream-dark); margin-bottom: 1.5rem; overflow: hidden; transition: transform 0.18s; }
+.post:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(42,32,16,0.07); }
+.post-head { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem 0.7rem; border-bottom: 1.5px solid var(--cream-dark); }
+.av { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: white; }
+.post-name { font-family: 'Playfair Display', serif; font-size: 0.97rem; font-weight: 700; }
+.post-date { font-size: 0.75rem; color: var(--brown-light); margin-top: 1px; }
+.post-q { margin: 0.9rem 1.25rem 0; background: var(--cream); border-left: 3px solid var(--golden-light); padding: 0.55rem 0.9rem; border-radius: 0 0.5rem 0.5rem 0; font-family: 'Playfair Display', serif; font-style: italic; font-size: 0.88rem; color: var(--brown-mid); }
+.post-text { padding: 0.8rem 1.25rem; font-size: 0.93rem; line-height: 1.65; }
+.post-photos { padding: 0 1.25rem 1.1rem; display: grid; gap: 4px; }
+.post-img { border-radius: 0.55rem; width: 100%; height: 200px; object-fit: cover; display: block; }
+.waiting-box { background: var(--card); border: 2px dashed var(--cream-dark); border-radius: 1rem; padding: 1.25rem; text-align: center; }
+.waiting-box p { font-size: 0.83rem; color: var(--brown-mid); margin-bottom: 0.7rem; }
+.waiting-chips { display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; }
+.chip { display: flex; align-items: center; gap: 0.4rem; background: var(--cream); padding: 0.28rem 0.75rem; border-radius: 99px; font-size: 0.82rem; color: var(--brown-mid); }
+.loading-state { text-align: center; padding: 3rem; color: var(--brown-mid); font-family: 'Playfair Display', serif; font-style: italic; }
+
+.compose-wrap { max-width: 580px; margin: 0 auto; padding: 1.75rem 2rem; }
+.compose-card { background: var(--card); border: 2px solid var(--cream-dark); border-radius: 1rem; padding: 2rem; }
+.compose-card h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 0.4rem; }
+.compose-sub { font-size: 0.88rem; color: var(--brown-mid); line-height: 1.6; margin-bottom: 1.4rem; }
+.prompt-box { background: var(--cream); border: 2px dashed var(--golden-light); border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1.4rem; text-align: center; font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.02rem; color: var(--brown); }
+.fgroup { margin-bottom: 1.2rem; }
+.fgroup label { display: block; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--brown-mid); margin-bottom: 0.4rem; }
+.fgroup textarea { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--cream-dark); border-radius: 0.6rem; font-family: 'Lato', sans-serif; font-size: 0.93rem; color: var(--brown); background: var(--cream); resize: vertical; outline: none; transition: border-color 0.18s; }
+.fgroup textarea:focus { border-color: var(--terra-light); background: white; }
+.upload-zone { border: 2px dashed var(--cream-dark); border-radius: 0.75rem; padding: 1.75rem; text-align: center; cursor: pointer; transition: all 0.18s; background: var(--cream); }
+.upload-zone:hover { border-color: var(--sage-light); background: rgba(106,142,110,0.04); }
+.upload-hint { font-size: 0.88rem; color: var(--brown-mid); }
+.upload-hint strong { color: var(--sage); }
+.photos-preview { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.photo-thumb { width: 72px; height: 72px; border-radius: 0.5rem; overflow: hidden; position: relative; cursor: pointer; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb .rm { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; opacity: 0; transition: opacity 0.15s; }
+.photo-thumb:hover .rm { opacity: 1; }
+.submit-btn { width: 100%; padding: 0.9rem; background: var(--terracotta); color: white; border: none; border-radius: 0.75rem; font-family: 'Lato', sans-serif; font-size: 0.97rem; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; transition: all 0.18s; margin-top: 0.5rem; }
+.submit-btn:hover { background: var(--terra-light); transform: translateY(-1px); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.already-posted { text-align: center; padding: 2rem; font-family: 'Playfair Display', serif; color: var(--sage); }
+
+.settings-wrap { max-width: 660px; margin: 0 auto; padding: 1.75rem 2rem; }
+.s-section { background: var(--card); border: 2px solid var(--cream-dark); border-radius: 1rem; padding: 1.4rem; margin-bottom: 1.4rem; }
+.s-section h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; padding-bottom: 0.7rem; border-bottom: 1.5px solid var(--cream-dark); margin-bottom: 0.6rem; }
+.s-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--cream); }
+.s-row:last-child { border-bottom: none; }
+.s-lbl { font-size: 0.92rem; }
+.s-lbl small { display: block; font-size: 0.75rem; color: var(--brown-light); margin-top: 2px; }
+.member-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--cream); }
+.member-row:last-child { border-bottom: none; }
+.m-name { font-size: 0.9rem; font-weight: 700; }
+.m-contact { font-size: 0.75rem; color: var(--brown-light); }
+.m-status { margin-left: auto; font-size: 0.75rem; font-weight: 700; }
+.m-status.yes { color: var(--sage); }
+.m-status.no { color: var(--brown-light); }
+.s-btn { padding: 0.38rem 0.9rem; border-radius: 0.5rem; font-family: 'Lato', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.s-btn-primary { background: var(--sage); color: white; border: none; }
+.s-btn-primary:hover { background: var(--sage-light); }
+.s-input { width: 100%; padding: 0.6rem 0.85rem; border: 2px solid var(--cream-dark); border-radius: 0.55rem; font-family: 'Lato', sans-serif; font-size: 0.9rem; color: var(--brown); background: var(--cream); outline: none; transition: border-color 0.18s; }
+.s-input:focus { border-color: var(--terra-light); background: white; }
+select.s-sel { border: 2px solid var(--cream-dark); border-radius: 0.5rem; padding: 0.35rem 0.75rem; font-family: 'Lato', sans-serif; font-size: 0.88rem; color: var(--brown); background: var(--cream); cursor: pointer; outline: none; }
+
+.pet-picker { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.pet-option { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; cursor: pointer; padding: 0.5rem 0.65rem; border-radius: 0.65rem; border: 2px solid transparent; transition: all 0.18s; }
+.pet-option:hover { border-color: var(--cream-dark); background: var(--cream); }
+.pet-option.selected { border-color: var(--brown); background: var(--cream); }
+.pet-option span { font-size: 0.7rem; color: var(--brown-mid); font-weight: 700; }
+
+.toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--brown); color: white; padding: 0.7rem 1.5rem; border-radius: 99px; font-size: 0.9rem; font-weight: 700; opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:0.6rem;">🏘</div>
+    <h1>Elm Street</h1>
+    <p>Enter your email to get a magic sign-in link. No password needed — only invited neighbors can access this.</p>
+    <input class="login-input" type="email" id="login-email" placeholder="your@email.com" />
+    <button class="login-btn" id="login-btn" onclick="sendMagicLink()">Send me a link →</button>
+    <div class="check-email" id="check-email">📬 Check your email! Click the link to sign in.</div>
+    <div class="login-note">Private · Powered by Supabase</div>
+  </div>
+</div>
+
+<!-- PROFILE SETUP (first time only) -->
+<div id="profile-screen">
+  <div class="profile-box">
+    <h2>Welcome to Elm Street! 🏡</h2>
+    <p>Set up your house before you start — takes just a second.</p>
+    <div class="fgroup">
+      <label>Your name</label>
+      <input class="s-input" type="text" id="profile-name" placeholder="e.g. Maya Johnson" />
+    </div>
+    <div class="fgroup">
+      <label>Pick your house color</label>
+      <div class="color-picker" id="color-picker">
+        <div class="color-swatch selected" style="background:#C0573A;" data-color="#C0573A"></div>
+        <div class="color-swatch" style="background:#6A8E6E;" data-color="#6A8E6E"></div>
+        <div class="color-swatch" style="background:#C88A22;" data-color="#C88A22"></div>
+        <div class="color-swatch" style="background:#5A8CAA;" data-color="#5A8CAA"></div>
+        <div class="color-swatch" style="background:#9B68B8;" data-color="#9B68B8"></div>
+        <div class="color-swatch" style="background:#5A7EA8;" data-color="#5A7EA8"></div>
+        <div class="color-swatch" style="background:#B85A78;" data-color="#B85A78"></div>
+        <div class="color-swatch" style="background:#6A9E8A;" data-color="#6A9E8A"></div>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Pick your yard pet</label>
+      <div class="pet-picker" id="pet-picker">
+        <div class="pet-option selected" data-pet="cat" onclick="selectPet(this)">
+          <svg width="36" height="28" viewBox="0 0 36 28" xmlns="http://www.w3.org/2000/svg"><!-- black cat -->
+            <ellipse cx="18" cy="18" rx="11" ry="8" fill="#222"/>
+            <circle cx="18" cy="10" r="6" fill="#222"/>
+            <polygon points="13,5 11,0 15,4" fill="#222"/>
+            <polygon points="23,5 25,0 21,4" fill="#222"/>
+            <ellipse cx="16" cy="10" rx="1.5" ry="2" fill="#88AAFF"/>
+            <ellipse cx="20" cy="10" rx="1.5" ry="2" fill="#88AAFF"/>
+            <path d="M14,13 Q18,15 22,13" stroke="#555" stroke-width="0.8" fill="none"/>
+            <line x1="10" y1="12" x2="4" y2="11" stroke="#555" stroke-width="0.8"/>
+            <line x1="10" y1="13" x2="4" y2="14" stroke="#555" stroke-width="0.8"/>
+            <line x1="26" y1="12" x2="32" y2="11" stroke="#555" stroke-width="0.8"/>
+            <line x1="26" y1="13" x2="32" y2="14" stroke="#555" stroke-width="0.8"/>
+            <path d="M26,20 Q30,18 32,22 Q30,24 26,22Z" fill="#222"/>
+          </svg>
+          <span>black cat</span>
+        </div>
+        <div class="pet-option" data-pet="dog" onclick="selectPet(this)">
+          <svg width="36" height="28" viewBox="0 0 36 28" xmlns="http://www.w3.org/2000/svg"><!-- yellow dog -->
+            <ellipse cx="18" cy="19" rx="12" ry="7" fill="#D4A030"/>
+            <circle cx="18" cy="11" r="6" fill="#D4A030"/>
+            <ellipse cx="12" cy="8" rx="3" ry="5" rx="3" fill="#C09020" transform="rotate(-15,12,8)"/>
+            <ellipse cx="24" cy="8" rx="3" ry="5" fill="#C09020" transform="rotate(15,24,8)"/>
+            <ellipse cx="16" cy="11" rx="1.4" ry="1.8" fill="#3A2800"/>
+            <ellipse cx="20" cy="11" rx="1.4" ry="1.8" fill="#3A2800"/>
+            <ellipse cx="18" cy="14" rx="3" ry="2" fill="#C09020"/>
+            <ellipse cx="18" cy="15" rx="2" ry="1.2" fill="#E87878"/>
+            <path d="M26,22 Q32,20 33,25 Q30,27 26,24Z" fill="#D4A030"/>
+          </svg>
+          <span>yellow dog</span>
+        </div>
+        <div class="pet-option" data-pet="bird" onclick="selectPet(this)">
+          <svg width="36" height="28" viewBox="0 0 36 28" xmlns="http://www.w3.org/2000/svg"><!-- green bird on perch -->
+            <line x1="18" y1="16" x2="18" y2="28" stroke="#8A6030" stroke-width="2"/>
+            <line x1="14" y1="28" x2="22" y2="28" stroke="#8A6030" stroke-width="2"/>
+            <ellipse cx="18" cy="13" rx="7" ry="6" fill="#3A9A50"/>
+            <circle cx="18" cy="8" r="4.5" fill="#4AAA60"/>
+            <ellipse cx="16.5" cy="8" rx="1.2" ry="1.5" fill="#1A2A10"/>
+            <ellipse cx="19.5" cy="8" rx="1.2" ry="1.5" fill="#1A2A10"/>
+            <polygon points="18,10 16,11 20,11" fill="#E8A020"/>
+            <path d="M11,13 Q8,10 6,13" stroke="#3A9A50" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <line x1="15" y1="18" x2="13" y2="24" stroke="#8A6030" stroke-width="1.5"/>
+            <line x1="21" y1="18" x2="23" y2="24" stroke="#8A6030" stroke-width="1.5"/>
+          </svg>
+          <span>green bird</span>
+        </div>
+        <div class="pet-option" data-pet="horse" onclick="selectPet(this)">
+          <svg width="36" height="28" viewBox="0 0 36 28" xmlns="http://www.w3.org/2000/svg"><!-- brown horse -->
+            <rect x="8" y="15" width="20" height="10" rx="4" fill="#8A5020"/>
+            <line x1="11" y1="25" x2="10" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="15" y1="25" x2="14" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="21" y1="25" x2="20" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="25" y1="25" x2="26" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="22" y="8" width="8" height="10" rx="3" fill="#8A5020"/>
+            <rect x="24" y="4" width="6" height="6" rx="2" fill="#9A6030"/>
+            <ellipse cx="29" cy="7" rx="1.2" ry="1.5" fill="#1A0A00"/>
+            <path d="M24,4 Q22,1 20,3" stroke="#5A3010" stroke-width="1.5" fill="none"/>
+            <path d="M24,6 Q22,5 21,7" stroke="#5A3010" stroke-width="1.5" fill="none"/>
+            <path d="M28,25 Q32,23 34,20" stroke="#5A3010" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span>brown horse</span>
+        </div>
+        <div class="pet-option" data-pet="bunny" onclick="selectPet(this)">
+          <svg width="36" height="28" viewBox="0 0 36 28" xmlns="http://www.w3.org/2000/svg"><!-- white bunny -->
+            <ellipse cx="18" cy="20" rx="10" ry="7" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>
+            <circle cx="18" cy="12" r="5.5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>
+            <ellipse cx="14" cy="5" rx="2" ry="5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>
+            <ellipse cx="22" cy="5" rx="2" ry="5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>
+            <ellipse cx="14" cy="5" rx="1" ry="3.5" fill="#FFAABB"/>
+            <ellipse cx="22" cy="5" rx="1" ry="3.5" fill="#FFAABB"/>
+            <ellipse cx="16.5" cy="12" rx="1.2" ry="1.4" fill="#3A1A2A"/>
+            <ellipse cx="19.5" cy="12" rx="1.2" ry="1.4" fill="#3A1A2A"/>
+            <ellipse cx="18" cy="14" rx="1.5" ry="1" fill="#FFAABB"/>
+            <circle cx="26" cy="20" r="3" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>
+          </svg>
+          <span>white bunny</span>
+        </div>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Phone number (optional — for text prompts)</label>
+      <input class="s-input" type="tel" id="profile-phone" placeholder="+1 (555) 000-0000" />
+    </div>
+    <button class="submit-btn" onclick="saveProfile()">Move in to Elm Street →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <nav class="nav">
+    <div style="display:flex;align-items:center;gap:0.6rem;">
+      <span style="font-size:1.4rem;">🏘</span>
+      <div>
+        <div class="nav-title">Elm Street</div>
+        <div class="nav-sub" id="nav-sub">Loading…</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="go('neighborhood')">Neighborhood</div>
+      <div class="nav-tab" onclick="go('feed')">Updates</div>
+      <div class="nav-tab" onclick="go('compose')">+ Post</div>
+      <div class="nav-tab" onclick="go('settings')">Settings</div>
+    </div>
+    <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+  </nav>
+
+  <div class="banner">
+    <span style="font-size:1.15rem;">📬</span>
+    <div>
+      <div class="banner-label" id="banner-month">This month</div>
+      <div class="banner-prompt" id="banner-question">Loading prompt…</div>
+    </div>
+    <div class="banner-cta" onclick="go('compose')">Share yours →</div>
+  </div>
+
+  <div id="v-neighborhood" class="view active">
+    <div class="nbhd-wrap">
+      <div class="map-card">
+        <svg class="map-sky" viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <circle cx="880" cy="55" r="36" fill="#F0C050" opacity="0.9"/>
+          <g stroke="#F0C050" stroke-width="3" stroke-linecap="round" opacity="0.7">
+            <line x1="880" y1="5" x2="880" y2="15"/><line x1="880" y1="95" x2="880" y2="105"/>
+            <line x1="830" y1="55" x2="820" y2="55"/><line x1="930" y1="55" x2="940" y2="55"/>
+            <line x1="844" y1="19" x2="851" y2="26"/><line x1="916" y1="91" x2="923" y2="98"/>
+            <line x1="916" y1="19" x2="923" y2="12"/><line x1="844" y1="91" x2="837" y2="98"/>
+          </g>
+          <ellipse cx="160" cy="60" rx="70" ry="30" fill="rgba(255,255,255,0.82)"/>
+          <ellipse cx="200" cy="52" rx="55" ry="26" fill="rgba(255,255,255,0.82)"/>
+          <ellipse cx="120" cy="68" rx="44" ry="24" fill="rgba(255,255,255,0.82)"/>
+          <ellipse cx="540" cy="45" rx="60" ry="28" fill="rgba(255,255,255,0.75)"/>
+          <ellipse cx="580" cy="38" rx="48" ry="24" fill="rgba(255,255,255,0.75)"/>
+          <ellipse cx="500" cy="52" rx="38" ry="22" fill="rgba(255,255,255,0.75)"/>
+          <ellipse cx="750" cy="80" rx="44" ry="22" fill="rgba(255,255,255,0.65)"/>
+          <ellipse cx="782" cy="73" rx="36" ry="20" fill="rgba(255,255,255,0.65)"/>
+        </svg>
+        <div class="map-street"></div>
+        <div class="map-sidewalk"></div>
+        <div class="map-grass-front"></div>
+        <svg style="position:absolute;bottom:154px;left:22px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.2))" width="42" height="80" viewBox="0 0 42 80" xmlns="http://www.w3.org/2000/svg">
+          <rect x="18" y="50" width="6" height="30" rx="3" fill="#7A5030"/>
+          <ellipse cx="21" cy="42" rx="18" ry="22" fill="#3A7840"/>
+          <ellipse cx="21" cy="33" rx="13" ry="17" fill="#4A8850"/>
+        </svg>
+        <svg style="position:absolute;bottom:154px;right:28px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.2))" width="36" height="68" viewBox="0 0 36 68" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="44" width="5" height="24" rx="2.5" fill="#7A5030"/>
+          <ellipse cx="17" cy="36" rx="16" ry="19" fill="#3A7840"/>
+          <ellipse cx="17" cy="28" rx="11" ry="14" fill="#4A8850"/>
+        </svg>
+        <div class="houses-row" id="houses-row">
+          <div class="loading-state" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">Loading neighbors…</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Posts this month</div><div class="stat-value" id="stat-posted">—</div><div class="stat-sub">neighbors have shared</div></div>
+        <div class="stat-card"><div class="stat-label">Next prompt drops</div><div class="stat-value" id="stat-next-date" style="font-size:1.2rem;">—</div><div class="stat-sub" id="stat-next-q" style="font-style:italic;font-family:'Playfair Display',serif;"></div></div>
+        <div class="stat-card"><div class="stat-label">Neighborhood</div><div class="stat-value" id="stat-members" style="font-size:1.1rem;">—</div><div class="stat-sub" style="color:var(--sage);font-weight:700;">🔒 Private</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="v-feed" class="view">
+    <div class="feed-wrap">
+      <div class="feed-head"><h2 id="feed-title">Updates</h2><span id="feed-count"></span></div>
+      <div id="feed-posts"><div class="loading-state">Loading posts…</div></div>
+    </div>
+  </div>
+
+  <div id="v-compose" class="view">
+    <div class="compose-wrap">
+      <div class="compose-card" id="compose-card">
+        <h2>Post this month's update</h2>
+        <p class="compose-sub">Your neighbors will see this in the feed. Only people in your neighborhood can read it.</p>
+        <div class="prompt-box" id="compose-prompt">Loading prompt…</div>
+        <div class="fgroup">
+          <label>Your response</label>
+          <textarea id="post-text" rows="5" placeholder="What do you want to share…"></textarea>
+        </div>
+        <div class="fgroup">
+          <label>Add photos <span style="font-weight:300;text-transform:none;letter-spacing:0;">(optional, up to 6)</span></label>
+          <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+            <div style="font-size:2rem;margin-bottom:0.5rem;">📷</div>
+            <div class="upload-hint"><strong>Tap to pick photos</strong><br>JPG, PNG · up to 10MB each</div>
+          </div>
+          <input type="file" id="file-input" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)" />
+          <div class="photos-preview" id="photos-preview"></div>
+        </div>
+        <button class="submit-btn" id="submit-btn" onclick="submitPost()">Share with the neighborhood 🏘</button>
+      </div>
+      <div class="already-posted" id="already-posted" style="display:none;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">✅</div>
+        You've already posted this month!<br>
+        <span style="font-size:0.9rem;color:var(--brown-mid);">Come back next month for the next prompt.</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="v-settings" class="view">
+    <div class="settings-wrap">
+      <div class="s-section">
+        <h3>My profile</h3>
+        <div class="s-row"><div class="s-lbl">Name<small>How you appear to neighbors</small></div><input class="s-input" type="text" id="settings-name" style="max-width:200px;" /></div>
+        <div class="s-row"><div class="s-lbl">Phone<small>For text prompts (optional)</small></div><input class="s-input" type="tel" id="settings-phone" placeholder="+1 555 000 0000" style="max-width:200px;" /></div>
+        <div class="s-row"><div class="s-lbl">Notify me via<small>How you get each month's prompt</small></div><select class="s-sel" id="settings-notify"><option value="email">📧 Email</option><option value="sms">📱 Text</option><option value="both">Both</option></select></div>
+        <div class="s-row" style="border-bottom:none;"><div></div><button class="s-btn s-btn-primary" onclick="saveSettings()">Save changes</button></div>
+      </div>
+      <div class="s-section"><h3>Neighbors</h3><div id="members-list"><div class="loading-state" style="padding:1rem 0;">Loading…</div></div></div>
+      <div class="s-section">
+        <h3>Invite someone</h3>
+        <div class="s-row"><div class="s-lbl">Private invite link<small>Anyone with this link can sign up</small></div><button class="s-btn s-btn-primary" onclick="copyInvite()">Copy link</button></div>
+      </div>
+      <div class="s-section"><h3>Upcoming prompts</h3><div id="upcoming-prompts"><div class="loading-state" style="padding:1rem 0;">Loading…</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null, currentProfile = null, currentPrompt = null;
+let selectedFiles = [], selectedColor = '#C0573A', selectedPet = 'cat';
+
+const roofMap = {'#C0573A':'#8E3E28','#6A8E6E':'#4A6E4E','#C88A22':'#9A6818','#5A8CAA':'#3A6888','#9B68B8':'#7A4898','#5A7EA8':'#3A5E88','#B85A78':'#882A48','#6A9E8A':'#3A7860'};
+
+async function boot() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) { currentUser = session.user; await loadApp(); }
+  else showLogin();
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) { currentUser = session.user; await loadApp(); }
+    if (event === 'SIGNED_OUT') showLogin();
+  });
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('profile-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function loadApp() {
+  const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (!profile || !profile.name) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('profile-screen').style.display = 'flex';
+    setupColorPicker();
+    return;
+  }
+  currentProfile = profile;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('profile-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await Promise.all([loadPrompt(), loadNeighborhood(), loadFeed()]);
+  loadSettingsPanel();
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { toast('Enter your email first'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+  if (error) { toast('Error: ' + error.message); btn.disabled = false; btn.textContent = 'Send me a link →'; return; }
+  document.getElementById('check-email').style.display = 'block';
+  btn.textContent = 'Link sent!';
+}
+
+async function signOut() { await db.auth.signOut(); toast('Signed out 👋'); }
+
+function setupColorPicker() {
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.onclick = () => {
+      document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('selected'));
+      s.classList.add('selected'); selectedColor = s.dataset.color;
+    };
+  });
+}
+
+function selectPet(el) {
+  document.querySelectorAll('.pet-option').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPet = el.dataset.pet;
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profile-name').value.trim();
+  if (!name) { toast('Add your name!'); return; }
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const { error } = await db.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, name, initials, house_color: selectedColor, pet: selectedPet, phone: document.getElementById('profile-phone').value.trim(), notify_by: 'email' });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Welcome to the neighborhood! 🏡');
+  await loadApp();
+}
+
+async function loadPrompt() {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthLabel = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  const { data: prompts } = await db.from('prompts').select('*').order('month', {ascending:true});
+  currentPrompt = (prompts||[]).find(p => p.month === monthKey) || { question: 'What do you want to share this month?' };
+  document.getElementById('nav-sub').textContent = `Private neighborhood · ${monthLabel}`;
+  document.getElementById('banner-month').textContent = monthLabel + ' prompt';
+  document.getElementById('banner-question').textContent = `"${currentPrompt.question}"`;
+  document.getElementById('compose-prompt').textContent = `"${currentPrompt.question}"`;
+  const nextPrompt = (prompts||[]).find(p => p.month > monthKey);
+  if (nextPrompt) {
+    const [y,m] = nextPrompt.month.split('-');
+    document.getElementById('stat-next-date').textContent = new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    document.getElementById('stat-next-q').textContent = `"${nextPrompt.question}"`;
+  }
+  const upEl = document.getElementById('upcoming-prompts');
+  const upcoming = (prompts||[]).filter(p => p.month > monthKey).slice(0,4);
+  upEl.innerHTML = upcoming.length ? upcoming.map(p => {
+    const [y,m] = p.month.split('-');
+    return `<div class="s-row"><div class="s-lbl">${new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long'})}</div><div style="font-family:'Playfair Display',serif;font-style:italic;font-size:0.88rem;color:var(--brown-mid);">"${p.question}"</div></div>`;
+  }).join('') : '<div style="font-size:0.85rem;color:var(--brown-light);padding:0.5rem 0;">No upcoming prompts yet — add them in your Supabase prompts table.</div>';
+}
+
+async function loadNeighborhood() {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const { data: profiles } = await db.from('profiles').select('*').order('name');
+  const { data: posts } = await db.from('posts').select('user_id').eq('month', monthKey);
+  const postedIds = new Set((posts||[]).map(p => p.user_id));
+  const row = document.getElementById('houses-row');
+  row.innerHTML = '';
+  (profiles||[]).forEach(p => {
+    const posted = postedIds.has(p.id);
+    const w = document.createElement('div');
+    w.className = 'house-wrap'; w.onclick = () => go('feed'); w.title = p.name;
+    w.innerHTML = `<div class="house-label">${p.name.split(' ')[0]}</div>`;
+    w.appendChild(makeHouseSVG(p.house_color || '#C0573A', posted, p.pet || 'cat'));
+    row.appendChild(w);
+  });
+  document.getElementById('stat-posted').textContent = `${postedIds.size} / ${(profiles||[]).length}`;
+  document.getElementById('stat-members').textContent = `${(profiles||[]).length} residents`;
+}
+
+function makePetSVG(pet) {
+  const pets = {
+    cat: `<ellipse cx="18" cy="18" rx="11" ry="8" fill="#222"/><circle cx="18" cy="10" r="6" fill="#222"/><polygon points="13,5 11,0 15,4" fill="#222"/><polygon points="23,5 25,0 21,4" fill="#222"/><ellipse cx="16" cy="10" rx="1.5" ry="2" fill="#88AAFF"/><ellipse cx="20" cy="10" rx="1.5" ry="2" fill="#88AAFF"/><path d="M14,13 Q18,15 22,13" stroke="#555" stroke-width="0.8" fill="none"/><line x1="10" y1="12" x2="4" y2="11" stroke="#555" stroke-width="0.8"/><line x1="10" y1="13" x2="4" y2="14" stroke="#555" stroke-width="0.8"/><line x1="26" y1="12" x2="32" y2="11" stroke="#555" stroke-width="0.8"/><line x1="26" y1="13" x2="32" y2="14" stroke="#555" stroke-width="0.8"/><path d="M26,20 Q30,18 32,22 Q30,24 26,22Z" fill="#222"/>`,
+    dog: `<ellipse cx="18" cy="19" rx="12" ry="7" fill="#D4A030"/><circle cx="18" cy="11" r="6" fill="#D4A030"/><ellipse cx="12" cy="9" rx="3" ry="4.5" fill="#C09020" transform="rotate(-20,12,9)"/><ellipse cx="24" cy="9" rx="3" ry="4.5" fill="#C09020" transform="rotate(20,24,9)"/><ellipse cx="16" cy="11" rx="1.4" ry="1.8" fill="#3A2800"/><ellipse cx="20" cy="11" rx="1.4" ry="1.8" fill="#3A2800"/><ellipse cx="18" cy="14" rx="3" ry="2" fill="#C09020"/><ellipse cx="18" cy="15" rx="2" ry="1.2" fill="#E87878"/><path d="M26,22 Q32,20 33,25 Q30,27 26,24Z" fill="#D4A030"/>`,
+    bird: `<line x1="18" y1="16" x2="18" y2="28" stroke="#8A6030" stroke-width="2"/><line x1="14" y1="28" x2="22" y2="28" stroke="#8A6030" stroke-width="2"/><ellipse cx="18" cy="13" rx="7" ry="6" fill="#3A9A50"/><circle cx="18" cy="8" r="4.5" fill="#4AAA60"/><ellipse cx="16.5" cy="8" rx="1.2" ry="1.5" fill="#1A2A10"/><ellipse cx="19.5" cy="8" rx="1.2" ry="1.5" fill="#1A2A10"/><polygon points="18,10 16,11 20,11" fill="#E8A020"/><path d="M11,13 Q8,10 6,13" stroke="#3A9A50" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="15" y1="18" x2="13" y2="24" stroke="#8A6030" stroke-width="1.5"/><line x1="21" y1="18" x2="23" y2="24" stroke="#8A6030" stroke-width="1.5"/>`,
+    horse: `<rect x="8" y="15" width="20" height="10" rx="4" fill="#8A5020"/><line x1="11" y1="25" x2="10" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/><line x1="15" y1="25" x2="14" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/><line x1="21" y1="25" x2="20" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/><line x1="25" y1="25" x2="26" y2="28" stroke="#8A5020" stroke-width="2.5" stroke-linecap="round"/><rect x="22" y="8" width="8" height="10" rx="3" fill="#8A5020"/><rect x="24" y="4" width="6" height="6" rx="2" fill="#9A6030"/><ellipse cx="29" cy="7" rx="1.2" ry="1.5" fill="#1A0A00"/><path d="M24,4 Q22,1 20,3" stroke="#5A3010" stroke-width="1.5" fill="none"/><path d="M28,25 Q32,23 34,20" stroke="#5A3010" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    bunny: `<ellipse cx="18" cy="20" rx="10" ry="7" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/><circle cx="18" cy="12" r="5.5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/><ellipse cx="14" cy="5" rx="2" ry="5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/><ellipse cx="22" cy="5" rx="2" ry="5" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/><ellipse cx="14" cy="5" rx="1" ry="3.5" fill="#FFAABB"/><ellipse cx="22" cy="5" rx="1" ry="3.5" fill="#FFAABB"/><ellipse cx="16.5" cy="12" rx="1.2" ry="1.4" fill="#3A1A2A"/><ellipse cx="19.5" cy="12" rx="1.2" ry="1.4" fill="#3A1A2A"/><ellipse cx="18" cy="14" rx="1.5" ry="1" fill="#FFAABB"/><circle cx="26" cy="20" r="3" fill="#F0EEE8" stroke="#D8D4CC" stroke-width="0.5"/>`
+  };
+  return pets[pet] || pets.cat;
+}
+
+function makeHouseSVG(color, posted, pet) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 90 140'); svg.setAttribute('width','90'); svg.setAttribute('height','140');
+  svg.style.filter = 'drop-shadow(0 5px 8px rgba(0,0,0,0.18))';
+  const roof = roofMap[color] || '#5C4030';
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.innerHTML = `
+    <ellipse cx="45" cy="136" rx="30" ry="4" fill="rgba(0,0,0,0.1)"/>
+    <rect x="12" y="48" width="66" height="52" rx="3" fill="${color}"/>
+    <polygon points="7,50 45,10 83,50" fill="${roof}"/>
+    <line x1="7" y1="50" x2="83" y2="50" stroke="rgba(0,0,0,0.12)" stroke-width="1.5"/>
+    <rect x="56" y="18" width="10" height="20" rx="2" fill="${roof}"/>
+    <rect x="34" y="68" width="22" height="32" rx="2" fill="rgba(0,0,0,0.22)"/>
+    <rect x="36" y="70" width="18" height="28" rx="1.5" fill="#9A6840"/>
+    <circle cx="52" cy="85" r="1.8" fill="#D4A060"/>
+    <rect x="15" y="57" width="18" height="16" rx="2" fill="rgba(255,255,255,0.25)"/>
+    <rect x="16" y="58" width="16" height="14" rx="1.5" fill="#AACCE8" opacity="0.85"/>
+    <line x1="24" y1="58" x2="24" y2="72" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+    <line x1="16" y1="65" x2="32" y2="65" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+    <rect x="57" y="57" width="18" height="16" rx="2" fill="rgba(255,255,255,0.25)"/>
+    <rect x="58" y="58" width="16" height="14" rx="1.5" fill="#AACCE8" opacity="0.85"/>
+    <line x1="66" y1="58" x2="66" y2="72" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+    <line x1="58" y1="65" x2="74" y2="65" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+    ${posted ? `<circle cx="72" cy="16" r="9" fill="#C0573A"/><text x="72" y="21" text-anchor="middle" font-size="9" fill="white" font-family="Lato,sans-serif" font-weight="bold">✓</text>` : ''}
+    <g transform="translate(27, 102) scale(0.75)">${makePetSVG(pet || 'cat')}</g>
+  `;
+  svg.appendChild(g);
+  return svg;
+}
+
+async function loadFeed() {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthLabel = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  document.getElementById('feed-title').textContent = monthLabel + ' Updates';
+  const { data: posts } = await db.from('posts').select('*, profiles(name, initials, house_color), photos(storage_path)').eq('month', monthKey).order('created_at', {ascending:false});
+  const { data: allProfiles } = await db.from('profiles').select('id, name, initials, house_color');
+  const postedIds = new Set((posts||[]).map(p => p.user_id));
+  const notPosted = (allProfiles||[]).filter(p => !postedIds.has(p.id));
+  const container = document.getElementById('feed-posts');
+  document.getElementById('feed-count').textContent = `${(posts||[]).length} post${(posts||[]).length===1?'':'s'} this month`;
+  if (!posts || posts.length === 0) {
+    container.innerHTML = '<div class="loading-state">No posts yet this month. Be the first! 👆</div>';
+  } else {
+    container.innerHTML = posts.map(post => {
+      const p = post.profiles;
+      const photos = post.photos || [];
+      const date = new Date(post.created_at).toLocaleDateString('en-US', {month:'long', day:'numeric'});
+      let photosHTML = '';
+      if (photos.length === 1) photosHTML = `<div class="post-photos" style="grid-template-columns:1fr;"><img class="post-img" src="${getPhotoUrl(photos[0].storage_path)}" loading="lazy" /></div>`;
+      else if (photos.length === 2) photosHTML = `<div class="post-photos" style="grid-template-columns:1fr 1fr;">${photos.map(ph=>`<img class="post-img" src="${getPhotoUrl(ph.storage_path)}" loading="lazy" />`).join('')}</div>`;
+      else if (photos.length >= 3) photosHTML = `<div class="post-photos" style="grid-template-columns:2fr 1fr;"><img class="post-img" src="${getPhotoUrl(photos[0].storage_path)}" loading="lazy" /><div style="display:grid;gap:4px;">${photos.slice(1,3).map(ph=>`<img class="post-img" style="height:93px;" src="${getPhotoUrl(ph.storage_path)}" loading="lazy" />`).join('')}</div></div>`;
+      return `<div class="post"><div class="post-head"><div class="av" style="background:${p.house_color||'#C0573A'};">${p.initials}</div><div><div class="post-name">${p.name}</div><div class="post-date">${date}</div></div></div><div class="post-q">"${currentPrompt?.question||''}"</div><div class="post-text">${post.content}</div>${photosHTML}</div>`;
+    }).join('');
+  }
+  if (notPosted.length > 0) container.innerHTML += `<div class="waiting-box"><p>Still waiting on updates from…</p><div class="waiting-chips">${notPosted.map(p=>`<div class="chip"><div class="av" style="width:26px;height:26px;font-size:0.62rem;background:${p.house_color||'#C0573A'};flex-shrink:0;">${p.initials}</div>${p.name.split(' ')[0]}</div>`).join('')}</div></div>`;
+  const userPosted = postedIds.has(currentUser.id);
+  document.getElementById('compose-card').style.display = userPosted ? 'none' : 'block';
+  document.getElementById('already-posted').style.display = userPosted ? 'block' : 'none';
+}
+
+function getPhotoUrl(path) {
+  const { data } = db.storage.from('photos').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (selectedFiles.length >= 6) { toast('Max 6 photos'); return; }
+    selectedFiles.push(f);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const idx = selectedFiles.length - 1;
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML = `<img src="${e.target.result}" /><div class="rm" onclick="removePhoto(${idx},this)">✕</div>`;
+      document.getElementById('photos-preview').appendChild(thumb);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function removePhoto(idx, el) { selectedFiles.splice(idx, 1); el.parentElement.remove(); }
+
+async function submitPost() {
+  const content = document.getElementById('post-text').value.trim();
+  if (!content) { toast('Write your update first!'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Posting…';
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const { data: post, error: postErr } = await db.from('posts').insert({ user_id: currentUser.id, month: monthKey, content, prompt_id: currentPrompt?.id || null }).select().single();
+  if (postErr) { toast('Error: ' + postErr.message); btn.disabled = false; btn.textContent = 'Share with the neighborhood 🏘'; return; }
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const f = selectedFiles[i];
+    const path = `${currentUser.id}/${post.id}/${Date.now()}-${f.name}`;
+    const { error: upErr } = await db.storage.from('photos').upload(path, f);
+    if (!upErr) await db.from('photos').insert({ post_id: post.id, storage_path: path });
+  }
+  toast('Posted! 🏘 Your neighbors will love it.');
+  document.getElementById('post-text').value = ''; selectedFiles = []; document.getElementById('photos-preview').innerHTML = '';
+  document.getElementById('compose-card').style.display = 'none';
+  document.getElementById('already-posted').style.display = 'block';
+  await loadFeed(); await loadNeighborhood();
+}
+
+function loadSettingsPanel() {
+  if (!currentProfile) return;
+  document.getElementById('settings-name').value = currentProfile.name || '';
+  document.getElementById('settings-phone').value = currentProfile.phone || '';
+  document.getElementById('settings-notify').value = currentProfile.notify_by || 'email';
+}
+
+async function saveSettings() {
+  const name = document.getElementById('settings-name').value.trim();
+  if (!name) { toast('Name cannot be empty'); return; }
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const { error } = await db.from('profiles').update({ name, initials, phone: document.getElementById('settings-phone').value.trim(), notify_by: document.getElementById('settings-notify').value }).eq('id', currentUser.id);
+  if (error) { toast('Error: ' + error.message); return; }
+  currentProfile.name = name; currentProfile.initials = initials;
+  toast('Settings saved ✓'); await loadNeighborhood();
+}
+
+async function loadMembersList() {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const { data: profiles } = await db.from('profiles').select('*').order('name');
+  const { data: posts } = await db.from('posts').select('user_id').eq('month', monthKey);
+  const postedIds = new Set((posts||[]).map(p=>p.user_id));
+  document.getElementById('members-list').innerHTML = (profiles||[]).map(p=>`
+    <div class="member-row">
+      <div class="av" style="background:${p.house_color||'#C0573A'};width:34px;height:34px;font-size:0.8rem;">${p.initials}</div>
+      <div><div class="m-name">${p.name}${p.id===currentUser.id?' <span style="font-size:0.72rem;background:var(--cream);padding:0.1rem 0.4rem;border-radius:99px;color:var(--brown-mid);font-weight:400;">you</span>':''}</div><div class="m-contact">${p.email}${p.phone?' · '+p.phone:''}</div></div>
+      <div class="m-status ${postedIds.has(p.id)?'yes':'no'}">${postedIds.has(p.id)?'✓ Posted':'Not yet'}</div>
+    </div>`).join('');
+}
+
+function copyInvite() { navigator.clipboard.writeText(window.location.href); toast('Invite link copied! 🔗'); }
+
+function go(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('v-'+name).classList.add('active');
+  const names = ['neighborhood','feed','compose','settings'];
+  document.querySelectorAll('.nav-tab')[names.indexOf(name)].classList.add('active');
+  window.scrollTo(0,0);
+  if (name === 'settings') loadMembersList();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+boot();
+</script>
+</body>
+</html>
